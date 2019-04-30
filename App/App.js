@@ -1,9 +1,9 @@
 import React, { PureComponent } from 'react';
 import { Platform, StyleSheet, Text, View, FlatList, Picker } from 'react-native';
-import Settings from './App/Code/Settings';
-import { log } from './App/Code/GeneralUtils';
-import SingleAlarm from './App/GUI/SingleAlarm';
-import {getList, findLocation} from './App/Code/Locations';
+import Settings from './Code/Settings';
+import { log } from './Code/GeneralUtils';
+import SingleAlarm from './GUI/SingleAlarm';
+import {getList, findLocation} from './Code/Locations';
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
