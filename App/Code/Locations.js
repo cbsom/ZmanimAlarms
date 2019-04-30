@@ -1,7 +1,7 @@
 import Location from './JCal/Location';
 
-export function GetAllLocations() {
-    const locations = [new Location('Ofakim', 'אופקים', true, 31.32, -34.62, 2, 170, 30),
+const fullList =
+    [new Location('Ofakim', 'אופקים', true, 31.32, -34.62, 2, 170, 30),
     new Location('Eilat', 'אילת', true, 29.55, -34.95, 2, 0, 30),
     new Location('Elad', 'אלעד', true, 32.05, -34.95, 2, 150, 30),
     new Location('Ashdod', 'אשדוד', true, 31.78, -34.63, 2, 0, 30),
@@ -1000,16 +1000,19 @@ export function GetAllLocations() {
     new Location('Yonkers,NY', null, false, 40.93, 73.9, -5, 0, 18),
     new Location('Auckland', null, false, -36.88, -174.75, 12, 0, 18),
     new Location('Niamey', null, false, 13.32, -2.03, 1, 0, 18),
-    new Location('Lagos', null, false, 6.27, -3.28, 1, 0, 18)];
-    locations.sort(function (a, b) { return (a.Name > b.Name) ? 1 : ((b.Name > a.Name) ? -1 : 0); });
-    return locations;
-}
+    new Location('Lagos', null, false, 6.27, -3.28, 1, 0, 18)].sort((a, b) =>
+        (a.Name > b.Name) ? 1 : ((b.Name > a.Name) ? -1 : 0));
 
+/**
+* Returns the entire list of locations
+*/
+export function getList() {
+    return fullList || [];
+}
 /**
  * Get the location with the given name
  * @param {String} name
  */
 export function findLocation(name) {
-    const locations = GetAllLocations();
-    return locations.find(l => l.Name === name);
+    return (fullList && fullList.find(l => l.Name === name)) || null;
 }

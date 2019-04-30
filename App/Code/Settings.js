@@ -5,7 +5,7 @@ import { log, error } from './GeneralUtils';
 export default class Settings {
     /**
      *
-     * @param {[{title:String, text:String, zmanName:String, alarmOffset:int, alternateDaysOffset:int, days:[], alternateDays:[] }]} [activeAlarms] List of active alarms
+     * @param {[{title:String, text:String, zmanName:String, alarmOffset:int, days:[]}]} [activeAlarms] List of active alarms
      * @param {Location} [location]
      */
     constructor(activeAlarms, location) {
@@ -17,9 +17,7 @@ export default class Settings {
             text: 'Shkia in 35 minutes',
             zmanName: 'shkiaElevation',
             alarmOffset: -35,
-            alternateDaysOffset: -45,
-            days: [0, 1, 2, 3, 4, 5],
-            alternateDays: [6]
+            days: [0, 1, 2, 3, 4, 5]
         }];
         /**
          * @property {Location} location

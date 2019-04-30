@@ -1,8 +1,9 @@
 import React, { PureComponent } from 'react';
-import { Platform, StyleSheet, Text, View, FlatList } from 'react-native';
+import { Platform, StyleSheet, Text, View, FlatList, Picker } from 'react-native';
 import Settings from './App/Code/Settings';
 import { log } from './App/Code/GeneralUtils';
 import SingleAlarm from './App/GUI/SingleAlarm';
+import {getList, findLocation} from './App/Code/Locations';
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
@@ -28,7 +29,7 @@ export default class App extends PureComponent {
   setInitialData() {
     const settings = new Settings();
     ////ONLY INITIAL DATA
-    //settings.save();
+    settings.save();
     this.state = { settings };
   }
   async getStorageData() {
@@ -41,20 +42,34 @@ export default class App extends PureComponent {
     this.setState({ settings });
   }
   renderAlarmItem({ item, index }) {
-    return (<View><Text>{`Alarm #${index + 1}`}</Text>
-      <View style={{ marginLeft: 25 }}>
-        <SingleAlarm activeAlarm={item} style={styles.container} />
-      </View></View>);
+    return (<View>
+      <Text style={styles.alarmItemIndex}>{`Alarm #${index + 1}`}</Text>
+      <SingleAlarm activeAlarm={item} style={styles.container} />
+    </View>);
   }
   render() {
     const { activeAlarms, location } = this.state.settings;
     return (
       <View style={styles.container}>
         <Text style={styles.welcome}>Zmanim Alarms!</Text>
-        <Text style={styles.location}>My Location is: <Text style={{ fontWeight: 'bold', fontSize: 17 }}>{location.Name}</Text></Text>
+        <View style={{ flexDirection: 'row' }}>
+          <Text style={styles.location}>My Location is:</Text>
+          <Picker
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+            selectedValue={findLocation(location.Name)}
+            onValueChange={l => {
+              activeAlarms.location = l;
+              this.setState({ activeAlarms });
+            }}>
+            {getList().map((l, i) => (
+              <Picker.Item key={i} value={l} label={l.Name} />
+            ))}
+          </Picker>
+        </View>
         <Text>Active Alarm List</Text>
         {activeAlarms.length
-          ? <FlatList data={activeAlarms} renderItem={this.renderAlarmItem} keyExtractor={(item, index) => index.toString()} />
+          ? <FlatList style={styles.alarmList} contentContainerStyle={styles.singleAlarm} data={activeAlarms} renderItem={this.renderAlarmItem} keyExtractor={(item, index) => index.toString()} />
           : <Text style={styles.welcome}>There are no alarms set.</Text>}
         <Text style={styles.instructions}>{instructions}</Text>
       </View>
@@ -65,8 +80,6 @@ export default class App extends PureComponent {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#000000'
   },
   welcome: {
@@ -84,5 +97,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#aaa',
     marginBottom: 5,
+  },
+  alarmList: { flex: 1 },
+  alarmItemIndex: {
+    color: '#7fa',
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 20,
+  },
+  singleAlarm: {
+    borderStyle: 'solid',
+    borderRadius: 10,
+    borderColor: '#888',
+    padding: 15,
+    backgroundColor: '#222',
+    marginLeft: 35,
+    marginRight: 35,
+    marginBottom: 20,
+  },
+  picker: {
+    height: 50,
+    width: 100,
+    backgroundColor: '#000'
+  },
+  pickerItem: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#aaf',
+    textAlign: 'center'
   },
 });
