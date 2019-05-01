@@ -223,6 +223,130 @@ export default class AppUtils {
     }
 
     /**
+     * Gets the zman for the given Zman type date and location.
+     * @param {String} zmanTypeName The name of the ZmanType to get the zman for.
+     * @param {Date} date The secular date to get the zmanim for
+     * @param {Location} location The location for which to get the zmanim
+     * @returns{Date}
+     */
+    static getZmanTime(zmanTypeName, date, location) {
+        const mem = AppUtils.zmanTimesCache.find(z => Utils.isSameSdate(z.date, date) && z.location.Name === location.Name),
+            zmanTime = { hour: 0, minute: 0, second: 0 };
+        let sunrise, sunset, suntimesMishor, sunriseMishor, sunsetMishor, mishorNeg90, chatzos, shaaZmanis, shaaZmanisMga;
+        if (mem) {
+            sunrise = mem.sunrise;
+            sunset = mem.sunset;
+            suntimesMishor = mem.suntimesMishor;
+            sunriseMishor = mem.sunriseMishor;
+            sunsetMishor = mem.sunsetMishor;
+            mishorNeg90 = mem.mishorNeg90;
+            chatzos = mem.chatzos;
+            shaaZmanis = mem.shaaZmanis;
+            shaaZmanisMga = mem.shaaZmanisMga;
+        }
+        else {
+            const suntimes = Zmanim.getSunTimes(date, location, true);
+            sunrise = suntimes.sunrise;
+            sunset = suntimes.sunset;
+            suntimesMishor = Zmanim.getSunTimes(date, location, false);
+            sunriseMishor = suntimesMishor.sunrise;
+            sunsetMishor = suntimesMishor.sunset;
+            mishorNeg90 = Utils.addMinutes(sunriseMishor, -90);
+            chatzos = sunriseMishor && sunsetMishor &&
+                Zmanim.getChatzosFromSuntimes(suntimesMishor);
+            shaaZmanis = sunriseMishor && sunsetMishor &&
+                Zmanim.getShaaZmanisFromSunTimes(suntimesMishor);
+            shaaZmanisMga = sunriseMishor && sunsetMishor &&
+                Zmanim.getShaaZmanisMga(suntimesMishor, true);
+
+            AppUtils.zmanTimesCache.push({ date, location, sunrise, sunset, suntimesMishor, sunriseMishor, sunsetMishor, mishorNeg90, chatzos, shaaZmanis, shaaZmanisMga });
+        }
+
+        switch (zmanTypeName) {
+            case 'chatzosNight':
+                zmanTime = Utils.addMinutes(chatzos, 720);
+                break;
+            case 'alos90':
+                zmanTime = mishorNeg90;
+                break;
+            case 'alos72':
+                zmanTime = Utils.addMinutes(sunriseMishor, -72);
+                break;
+            case 'talisTefillin':
+                zmanTime = Utils.addMinutes(sunriseMishor, -36);
+                break;
+            case 'netzElevation':
+                zmanTime = sunrise;
+                break;
+            case 'netzMishor':
+                zmanTime = sunriseMishor;
+            case 'szksMga':
+                zmanTime = Utils.addMinutes(mishorNeg90, Math.floor(shaaZmanisMga * 3));
+                break;
+            case 'szksGra':
+                zmanTime = Utils.addMinutes(sunriseMishor, Math.floor(shaaZmanis * 3));
+                break;
+            case 'sztMga':
+                zmanTime = Utils.addMinutes(mishorNeg90, Math.floor(shaaZmanisMga * 4));
+                break;
+            case 'sztGra':
+                zmanTime = Utils.addMinutes(sunriseMishor, Math.floor(shaaZmanis * 4));
+                break;
+            case 'chatzos':
+                zmanTime = chatzos;
+                break;
+            case 'minGed':
+                zmanTime = Utils.addMinutes(chatzos, (shaaZmanis * 0.5));
+                break;
+            case 'minKet':
+                zmanTime = Utils.addMinutes(sunriseMishor, (shaaZmanis * 9.5));
+                break;
+            case 'plag':
+                zmanTime = Utils.addMinutes(sunriseMishor, (shaaZmanis * 10.75));
+                break;
+            case 'shkiaMishor':
+                zmanTime = sunsetMishor;
+                break;
+            case 'shkiaElevation':
+                zmanTime = sunset;
+                break;
+            case 'tzais45':
+                zmanTime = Utils.addMinutes(sunset, 45);
+                break;
+            case 'tzais50':
+                zmanTime = Utils.addMinutes(sunset, 50);
+                break;
+            case 'tzais72':
+                zmanTime = Utils.addMinutes(sunset, 72);
+                break;
+            case 'tzais72Zmaniot':
+                zmanTime = Utils.addMinutes(sunset, (shaaZmanis * 1.2));
+                break;
+            case 'tzais72ZmaniotMA':
+                zmanTime = Utils.addMinutes(sunset, (shaaZmanisMga * 1.2));
+                break;
+        }
+        date.setHours(zmanTime.hour);
+        date.setMinutes(zmanTime.minute);
+        date.setSeconds(zmanTime.second);
+        return date;
+    }
+
+    /**
+     * Get the next upcoming instance of the zman type for the given date and location.
+     * If the zman time is not later than the given date's time value, the following dates zman will be rteturned.
+     * @param {String} zmanTypeName 
+     * @param {Location} location 
+     */
+    static getNextZmanTime(zmanTypeName, date, location) {
+        let zmanDate = getZmanTime(zmanTypeName, date, location);
+        if (zmanDate.getTime() <= date.getTime()) {
+            zmanDate = getZmanTime(zmanTypeName, Utils.addDaysToSdate(date, 1), location);
+        }
+        return zmanDate;
+    }
+
+    /**
      * Returns the zmanim nessesary for showing basic shul notifications: chatzosHayom, chatzosHalayla, alos
      * @param {Date} sdate
      * @param {Location} location

@@ -12,13 +12,7 @@ export default class Settings {
         /**
          * @property {[ZmanTypes]} activeAlarms List of active alarms
          */
-        this.activeAlarms = activeAlarms || [{
-            title: 'Mincha reminder',
-            text: 'Shkia in 35 minutes',
-            zmanName: 'shkiaElevation',
-            alarmOffset: -35,
-            days: [0, 1, 2, 3, 4, 5]
-        }];
+        this.activeAlarms = activeAlarms || [];
         /**
          * @property {Location} location
          */
@@ -73,5 +67,15 @@ export default class Settings {
             error(e);
         }
         return settings;
+    }
+
+    static getEmptyAlarm() {
+        return {
+            title: 'New reminder',
+            text: 'Fill in the text of reminder',
+            zmanName: 'shkiaElevation',
+            alarmOffset: -45,
+            days: [0, 1, 2, 3, 4, 5, 6]
+        };
     }
 }

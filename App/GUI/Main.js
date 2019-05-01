@@ -1,176 +1,167 @@
-import React, { PureComponent } from 'react';
-import {
-    StyleSheet,
-    Text,
-    View,
-    ScrollView
-} from 'react-native';
-import Utils from '../Code/JCal/Utils';
+import React, { Component } from 'react';
+import { Platform, StyleSheet, Text, View, FlatList, Picker, TouchableHighlight, Image } from 'react-native';
+import Settings from '../Code/Settings';
+import { log } from '../Code/GeneralUtils';
+import SingleAlarm from './SingleAlarm';
+import { getList, findLocation } from '../Code/Locations';
+import { regenerateAll } from '../Code/Notifications';
+import deleteImg from '../Images/delete.png';
+import addImg from '../Images/add.png';
+import saveImg from '../Images/save.png';
 
-export default class Main extends PureComponent {
-    constructor(props) {
-        super(props);
-        this.displaySingleZman = this.displaySingleZman.bind(this);
-        this.getNotificationsView = this.getNotificationsView.bind(this);
-    }
-    displaySingleZman(zt, index) {
-        if (index >= this.props.settings.numberOfItemsToShow)
-            return null;
-        const timeDiff = Utils.timeDiff(this.props.nowTime, zt.time, !zt.isTommorrow),
-            was = (timeDiff.sign === -1),
-            minutes = Utils.totalMinutes(timeDiff),
-            minutesFrom10 = (10 - minutes),
-            isWithin10 = (!was && !zt.isTommorrow) && (minutes < 10),
-            itemHeight = Math.trunc(100 /
-                Math.min(Number(this.props.settings.numberOfItemsToShow),
-                    Number(this.props.zmanTimes.length))) - 2,
-            timeRemainingColor = was
-                ? '#844'
-                : (isWithin10
-                    ? `rgb(${200 + (minutesFrom10 * 5)},
-                            ${150 + (minutesFrom10 * 5)},
-                            100)` :
-                    '#a99');
-        return <View key={index}
-            style={[styles.singleZman, { height: `${itemHeight}%` }]}>
-            <Text style={[styles.timeRemainingLabel, {
-                color: was ? '#550' : '#99f',
-                fontSize: 15
-            }]}>
-                <Text style={styles.timeRemainingNumber}>{zt.zmanType.heb}</Text>
-                {`  ${was ? 'עבר לפני' : 'בעוד'}:`}
-            </Text>
-            <Text style={[styles.timeRemainingText, { color: timeRemainingColor }]}>
-                {Utils.getTimeIntervalTextStringHeb(timeDiff)}
-            </Text>
-            <Text style={was ? styles.zmanTypeNameTextWas : styles.zmanTypeNameText}>
-                {`${zt.isTommorrow && zt.time.hour > 2 ? 'מחר ' : ''}בשעה: `}
-                <Text style={isWithin10 ? styles.within10ZmanTimeText : styles.zmanTimeText}>
-                    {Utils.getTimeString(zt.time, true)}
-                </Text>
-            </Text>
-        </View>;
-    }
-    getNotificationsView() {
-        const notifications = this.props.notifications,
-            innerViews = [];
-        if (notifications && notifications.length) {
-            for (let i = 0; i < Math.ceil(notifications.length / 3); i++) {
-                let texts = [];
-                for (let index = 0; index < 3; index++) {
-                    const note = notifications[(i * 3) + index];
-                    if (note) {
-                        texts.push(<Text key={index} style={styles.notificationsText}>
-                            {note}
-                        </Text>);
-                    }
-                }
-                innerViews.push(<View key={i} style={styles.notificationsInnerView}>
-                    {texts}
-                </View>);
-            }
-        }
-        return (<View style={styles.notificationsView}>
-            {innerViews}
-        </View>);
-    }
+export default class Main extends Component {
+  constructor(props) {
+    super(props);
 
-    render() {
-        return <View style={styles.container}>
-            <Text style={styles.dateText}>{this.props.jdate.toStringHeb()}</Text>
-            {this.getNotificationsView()}
-            <Text style={styles.timeNowText}>השעה עכשיו:</Text>
-            <Text style={styles.timeText1}>
-                {Utils.getTimeString(this.props.nowTime, true)}
-            </Text>
-            <ScrollView style={styles.scrollView}
-                contentContainerStyle={{ flex: (this.props.settings.numberOfItemsToShow > 3 ? 0 : 1) }}>
-                {this.props.zmanTimes.map((zt, i) => this.displaySingleZman(zt, i))}
-            </ScrollView>
-        </View >;
-    }
+    this.setInitialData = this.setInitialData.bind(this);
+    this.getStorageData = this.getStorageData.bind(this);
+    this.changeSettings = this.changeSettings.bind(this);
+
+    this.setInitialData();
+  }
+  componentDidMount() {
+    this.getStorageData();
+  }
+  setInitialData() {
+    const settings = new Settings();
+    this.state = { settings };
+  }
+  async getStorageData() {
+    const settings = await Settings.getSettings();
+    this.setState({ settings });
+  }
+  changeSettings(settings) {
+    log('changed settings:', settings);
+    settings.save();
+    regenerateAll(settings);
+    this.setState({ settings });
+  }
+  render() {
+    const settings = this.state.settings;
+    return (
+      <View style={styles.container}>
+        <View style={{ flex: 0 }}>
+          <Text style={styles.welcome}>Zmanim Alarms!</Text>
+          <View style={styles.locationBar}>
+            <Text style={styles.location}>My Location</Text>
+            <Picker
+              mode='dropdown'
+              style={styles.locPicker}
+              itemStyle={styles.locPickerItem}
+              selectedValue={findLocation(settings.location.Name)}
+              onValueChange={l => {
+                settings.location = l;
+                this.changeSettings(settings);
+              }}>
+              {getList().map((l, i) => (
+                <Picker.Item key={i} value={l} label={l.Name + (l.NameHebrew ? ' / ' + l.NameHebrew : '')} />
+              ))}
+            </Picker>
+          </View>
+          <Text>Active Alarm List</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          {settings.activeAlarms.length
+            ? <FlatList
+              data={settings.activeAlarms}
+              renderItem={({ item, index }) =>
+                <View style={styles.singleAlarm}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={styles.alarmItemIndex}>{`Alarm #${index + 1} - ${item.title}`}</Text>
+                    <TouchableHighlight onPress={() => {
+                      const activeAlarms = [...settings.activeAlarms];
+                      activeAlarms.splice(index, 1);
+                      settings.activeAlarms = activeAlarms;
+                      this.changeSettings(settings);
+                    }}><Image source={deleteImg} /></TouchableHighlight>
+                  </View>
+                  <SingleAlarm activeAlarm={item} style={styles.container} />
+                  <TouchableHighlight style={{ flex: 1, marginTop: 10, backgroundColor: '#343', borderRadius: 10, justifyContent: 'center', alignContent: 'center', alignItems: 'center' }} onPress={() => {
+                    const activeAlarms = [...settings.activeAlarms];
+                    settings.activeAlarms = activeAlarms;
+                    this.changeSettings(settings);
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Image source={saveImg} />
+                      <Text style={styles.instructions}>Save Changes</Text>
+                    </View>
+                  </TouchableHighlight>
+                </View>}
+              keyExtractor={(item, index) => index.toString()} />
+            : <Text style={styles.welcome}>There are no alarms set.</Text>}
+        </View>
+        <TouchableHighlight style={{ flex: 0, backgroundColor: '#223', justifyContent: 'center', alignContent: 'center', alignItems: 'center' }} onPress={() => {
+          const activeAlarms = [...settings.activeAlarms];
+          activeAlarms.push(Settings.getEmptyAlarm());
+          settings.activeAlarms = activeAlarms;
+          this.setState({ settings });
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Image source={addImg} />
+            <Text style={styles.instructions}>Add a new Zman Alarm</Text>
+          </View>
+        </TouchableHighlight>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#000',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    scrollView: {
-        width: '90%',
-        height: '75%',
-        flex: 1
-    },
-    notificationsView: {
-        marginTop: 10,
-        marginBottom: 10,
-        width: '100%'
-    },
-    notificationsInnerView: {
-        justifyContent: 'space-around',
-        flexDirection: 'row',
-        marginBottom: 10,
-        width: '100%',
-    },
-    notificationsText: {
-        color: '#899',
-        fontWeight: 'bold',
-        fontSize: 13
-    },
-    singleZman: {
-        backgroundColor: '#111',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 7,
-        padding: 20,
-        width: '100%',
-        marginBottom: 10,
-        minHeight: 130
-    },
-    dateText: {
-        color: '#b88',
-        fontSize: 25,
-        textAlign: 'center'
-    },
-    timeText1: {
-        color: '#595',
-        fontSize: 80,
-        padding: 1,
-        marginBottom: 15
-    },
-    timeNowText: {
-        color: '#99f',
-        fontSize: 20,
-        fontWeight: 'bold'
-    },
-    zmanTimeText: {
-        color: '#9b9'
-    },
-    within10ZmanTimeText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#9b9'
-    },
-    timeRemainingText: {
-        fontSize: 38,
-        textAlign: 'center'
-    },
-    timeRemainingNumber: {
-        color: '#ffffee',
-        fontSize: 20
-    },
-    timeRemainingLabel: {
-        fontSize: 18,
-        fontWeight: 'bold'
-    },
-    zmanTypeNameText: {
-        color: '#99f',
-        fontSize: 22
-    },
-    zmanTypeNameTextWas: {
-        color: '#558',
-        fontSize: 15
-    }
+  container: {
+    flex: 1,
+    backgroundColor: '#000000'
+  },
+  welcome: {
+    fontSize: 30,
+    textAlign: 'center',
+    margin: 10,
+    color: '#C88'
+  },
+  locationBar: {
+    backgroundColor: '#113',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignContent: 'center'
+  },
+  location: {
+    color: '#aac',
+    fontSize: 12
+  },
+  locPicker: {
+    height: 50,
+    width: '100%',
+    fontWeight: 'bold',
+    fontSize: 18,
+    color: '#bbf',
+    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    alignContent: 'space-around'
+  },
+  locPickerItem: {
+    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    alignContent: 'space-around'
+  },
+  instructions: {
+    textAlign: 'center',
+    color: '#aaa',
+    marginBottom: 5,
+  },
+  alarmItemIndex: {
+    color: '#7fa',
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 20,
+  },
+  singleAlarm: {
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#222',
+    marginBottom: 5,
+    marginRight: 10,
+    marginLeft: 10,
+    marginTop: 5
+  },
 });

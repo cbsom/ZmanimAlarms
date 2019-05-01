@@ -36,7 +36,7 @@ export default class Location {
         }
 
         this.Name = (name || 'Unknown Location');
-        this.NameHebrew = (heb || name || 'מיקום לא ידוע');
+        this.NameHebrew = heb;
         this.Israel = !!israel;
         this.Latitude = latitude;
         this.Longitude = longitude;
