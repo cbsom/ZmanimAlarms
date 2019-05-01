@@ -5,7 +5,6 @@ import Settings from './Settings';
 import jDate from './JCal/jDate';
 import Molad from './JCal/Molad';
 import PirkeiAvos from './JCal/PirkeiAvos';
-import NavigationBarAndroid from './NavigationBar';
 
 const DaysOfWeek = Object.freeze({
     SUNDAY: 0,
@@ -230,9 +229,9 @@ export default class AppUtils {
      * @returns{Date}
      */
     static getZmanTime(zmanTypeName, date, location) {
-        const mem = AppUtils.zmanTimesCache.find(z => Utils.isSameSdate(z.date, date) && z.location.Name === location.Name),
-            zmanTime = { hour: 0, minute: 0, second: 0 };
-        let sunrise, sunset, suntimesMishor, sunriseMishor, sunsetMishor, mishorNeg90, chatzos, shaaZmanis, shaaZmanisMga;
+        const mem = AppUtils.zmanTimesCache.find(z => Utils.isSameSdate(z.date, date) && z.location.Name === location.Name);            
+        let zmanTime = { hour: 0, minute: 0, second: 0 },
+            sunrise, sunset, suntimesMishor, sunriseMishor, sunsetMishor, mishorNeg90, chatzos, shaaZmanis, shaaZmanisMga;
         if (mem) {
             sunrise = mem.sunrise;
             sunset = mem.sunset;
@@ -326,10 +325,11 @@ export default class AppUtils {
                 zmanTime = Utils.addMinutes(sunset, (shaaZmanisMga * 1.2));
                 break;
         }
-        date.setHours(zmanTime.hour);
-        date.setMinutes(zmanTime.minute);
-        date.setSeconds(zmanTime.second);
-        return date;
+        const rDate = new Date(date.getTime());
+        rDate.setHours(zmanTime.hour);
+        rDate.setMinutes(zmanTime.minute);
+        rDate.setSeconds(zmanTime.second);
+        return rDate;
     }
 
     /**
@@ -339,9 +339,9 @@ export default class AppUtils {
      * @param {Location} location 
      */
     static getNextZmanTime(zmanTypeName, date, location) {
-        let zmanDate = getZmanTime(zmanTypeName, date, location);
+        let zmanDate = AppUtils.getZmanTime(zmanTypeName, date, location);
         if (zmanDate.getTime() <= date.getTime()) {
-            zmanDate = getZmanTime(zmanTypeName, Utils.addDaysToSdate(date, 1), location);
+            zmanDate = AppUtils.getZmanTime(zmanTypeName, Utils.addDaysToSdate(date, 1), location);
         }
         return zmanDate;
     }
@@ -426,22 +426,7 @@ export default class AppUtils {
         //return only unique values
         return [...new Set(notifications)];
     }
-    /**
-     * Show Android settings to switch the Home app.
-     * This allows the developer to access the default Android home app.
-     * The user is only allowed to exit the app this way if they enter the "password" -
-     * which is accomplished by changing the app settings to the required values (see code below).
-     * @param {{ location:Location, showNotifications:Boolean, numberOfItemsToShow:Number, minToShowPassedZman:Number }} settings
-     */
-    static changeSystemHomeSettings(settings) {
-        const { location, showNotifications, numberOfItemsToShow, minToShowPassedZman } = settings;
-        if (location.Name === 'פומפדיתא' &&
-            (!showNotifications) &&
-            numberOfItemsToShow === 9 &&
-            minToShowPassedZman === 57) {
-            NavigationBarAndroid.changeSystemHomeSettings();
-        }
-    }
+
 }
 
 function getShabbosNotifications(notifications, dayInfo) {
