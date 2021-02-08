@@ -651,7 +651,7 @@ export default class jDate {
             else if (jMonth === 5 && jDay > 2 && jDay < 10) {
                 list.push(!hebrew ? 'Shabbos Chazon' : 'שבת חזון');
             }
-            else if ((jMonth === (isLeapYear ? 12 : 11) && jDay > 23 && jDay < 30) ||
+            else if ((jMonth === (isLeapYear ? 12 : 11) && jDay > 24) ||
                 (jMonth === (isLeapYear ? 13 : 12) && jDay === 1)) {
                 list.push(!hebrew ? 'Parshas Shkalim' : 'פרשת שקלים');
             }
